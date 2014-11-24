@@ -1,6 +1,7 @@
 #!/usr/bin/bc
 print "\nPourcentage calculation for poloniex"
 scale=20
+query = 10
 
 define ask () { 
 	print "\nreference value? \n"; 
@@ -13,12 +14,10 @@ refe = ask()
 define pourcent (n,m) { 
 	return ((n-m)/n*100); }
 
-while (1) {
+while (query > 0 ) {
 	print "enter value to compute:\n" ; comp = read()
 	print "the pourcent is : "; pourcent(comp,refe)
 	print "\ntype 0 to exit, or 1 for changing the reference, any number to continue: "; query = read()
-	if ( query==0 ) { 
-		break }
 	if (query==1) { 
 		refe = ask() } 
 }
