@@ -5,7 +5,7 @@
 # reference value is the price of one coin
 # comp is the value you want to sell
 # display the % gain or loss between buying price and selling price
-print "\nPourcentage calculation for poloniex"
+print "\nPourcentage calculation for Poloniex"
 scale=20
 query = 10
 
