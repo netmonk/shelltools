@@ -1,0 +1,13 @@
+#!/usr/bin/bc
+print "\nPourcentage calculation for poloniex"
+
+print "\nreference value? \n"; refe = read()
+scale=20
+define pourcent (n,m) { 
+	return ((n-m)/n*100); }
+while (1) {
+	print "enter value to compute:\n" ; comp = read()
+	print "the pourcent is : "; pourcent(comp,refe)
+}
+quit
+
