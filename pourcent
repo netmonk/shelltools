@@ -1,4 +1,10 @@
 #!/usr/bin/bc
+# netmonk@netmonk.org 2014 
+# chmod u+x to directly run it in shell by ./pourcent
+# or execute it as bc argument : "bc pourcent" in standard unix shell
+# reference value is the price of one coin
+# comp is the value you want to sell
+# display the % gain or loss between buying price and selling price
 print "\nPourcentage calculation for poloniex"
 scale=20
 query = 10
