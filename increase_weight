@@ -1,0 +1,127 @@
+#!/bin/env bash 
+# adding new osd into ceph cluster. 
+# by reweighting them little by little starting by a crush weigh of 0 to reach their max weight. 
+# read the scrip carefully to understand what is does !!! 
+#
+# Defining parameters
+#
+STARTINGOSD=5000
+ENDINGOSD=5000
+STEP=0.05
+STARTINGWEIGHT=0
+FINALWEIGHT=5.456085
+DRYRUN=${DRYRUN:-TRUE}
+
+
+# Defining colors and message functions
+# For more infos on ANSI code : http://wiki.bash-hackers.org/scripting/terminalcodes
+red=$(tput setaf 1)
+gre=$(tput setaf 2)
+yel=$(tput setaf 3)
+blu=$(tput setaf 4)
+cya=$(tput setaf 6)
+reset=$(tput sgr0)
+WriteLog()
+{
+  echo -e "$gre$(date +%d/%m/%Y\ %H:%M:%S:%3N) ${0##*/} MSG LOG: ${1}$reset"
+  return 0
+}
+WriteWarn()
+{
+  echo -e "$yel$(date +%d/%m/%Y\ %H:%M:%S:%3N) ${0##*/} MSG WARNING: ${1}$reset"
+  return 0
+}
+WriteErr()
+{
+  echo -e "$red$(date +%d/%m/%Y\ %H:%M:%S:%3N) ${0##*/} MSG ERROR: ${1}$reset"
+  return 0
+}
+CustRead()
+{
+  read -p "$(tput setaf 4)$(date +%d/%m/%Y\ %H:%M:%S:%3N) ${0##*/} MSG INPUT: $1$(tput sgr0)" "${@:2}"
+}
+Pause() 
+{
+  CustRead "Press Any Key to continue" foo
+}
+
+
+
+
+
+# ########################
+# work function definition
+# ########################
+
+pbmessage ()
+{
+	local lines=0
+	[[ "$DRYRUN" == "TRUE" ]] ||  local lines="$(ceph -s |grep -i "peering\|block" |wc -l)"
+	echo "$lines"
+} 
+
+check4message ()
+{
+  	res=$(pbmessage)
+  	while [ $res -ne 0 ]; do
+		WriteLog "There are $res peering or blocked in status, sleeping 10 seconds"
+		[[ "$DRYRUN" == "TRUE" ]] || sleep 10 
+  		res=$(pbmessage)
+	done
+	WriteLog "No peering or blocked transation in status, let's continue"
+}
+
+increase_weight ()
+{ 
+	osd=$1	
+	weight=$2
+	WriteLog "Increasing weight of osd $osd to $weight"
+ 	[[ "$DRYRUN" == "TRUE" ]]  || ( ceph osd crush reweight osd.$osd $weight; sleep 1) 
+}
+
+increase_all ()
+{ 
+	workingweight=$1
+	seq $STARTINGOSD $ENDINGOSD | while read i ; do 
+		increase_weight $i $workingweight
+	done
+} 
+
+# Alternative way to increase weight, increasing one osd per 4 servers at each loop.
+increase_all_bis_custom ()
+{
+  workingweight=$1
+  
+  seq 0 19 | while read i; do 
+  	increase_weight $(echo "$STARTINGOSD+$i"| bc ) $workingweight
+  	increase_weight $(echo "$STARTINGOSD+$i+20"| bc ) $workingweight
+  	increase_weight $(echo "$STARTINGOSD+$i+40"| bc ) $workingweight
+  	increase_weight $(echo "$STARTINGOSD+$i+60"| bc ) $workingweight
+  done 
+}
+
+begin ()
+{ 
+
+currentweight=$(bc <<< "$STARTINGWEIGHT+$STEP")
+while (( $(echo "${currentweight} <5.41 "|bc) )); do 
+	check4message
+	increase_all $currentweight
+	currentweight=$(bc <<< "${currentweight}+${STEP}")
+done
+check4message
+increase_all_bis_custom $FINALWEIGHT
+} 
+
+############
+#   MAIN   #
+############
+res=$(pbmessage)
+WriteLog "There are $res peering or blocked in status"
+WriteLog "Starting OSD is $STARTINGOSD"
+WriteLog "Ending OSD is $ENDINGOSD"
+WriteLog "Sarting weight is $STARTINGWEIGHT"
+WriteLog "Increment is $STEP"
+[[ "$DRYRUN" == "TRUE" ]] && WriteWarn "!!! Dryrun activated by default, run with setting DRYRUN=FALSE to effectively run it. !!!" || WriteWarn "This is not a drill be carefull and choose wisely to continue DRYRUN IS OFF"
+Pause
+begin
