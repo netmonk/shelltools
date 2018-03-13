@@ -1,14 +1,12 @@
 #!/bin/env bash 
-# adding new osd into ceph cluster. 
-# by reweighting them little by little starting by a crush weigh of 0 to reach their max weight. 
-# read the scrip carefully to understand what is does !!! 
+
 #
 # Defining parameters
 #
-STARTINGOSD=5000
-ENDINGOSD=5000
-STEP=0.05
-STARTINGWEIGHT=0
+STARTINGOSD=560
+ENDINGOSD=720
+STEP=0.025
+STARTINGWEIGHT=2.35
 FINALWEIGHT=5.456085
 DRYRUN=${DRYRUN:-TRUE}
 
@@ -45,46 +43,42 @@ Pause()
   CustRead "Press Any Key to continue" foo
 }
 
-
-
-
-
 # ########################
 # work function definition
 # ########################
 
 pbmessage ()
 {
-	local lines=0
-	[[ "$DRYRUN" == "TRUE" ]] ||  local lines="$(ceph -s |grep -i "peering\|block" |wc -l)"
-	echo "$lines"
+        local lines=0
+        [[ "$DRYRUN" == "TRUE" ]] ||  local lines="$(ceph -s |grep -i "peering\|block" |wc -l)"
+        echo "$lines"
 } 
 
 check4message ()
 {
-  	res=$(pbmessage)
-  	while [ $res -ne 0 ]; do
-		WriteLog "There are $res peering or blocked in status, sleeping 10 seconds"
-		[[ "$DRYRUN" == "TRUE" ]] || sleep 10 
-  		res=$(pbmessage)
-	done
-	WriteLog "No peering or blocked transation in status, let's continue"
+        res=$(pbmessage)
+        while [ $res -ne 0 ]; do
+                WriteWarn "There are $res peering or blocked in status, sleeping 5 seconds"
+                [[ "$DRYRUN" == "TRUE" ]] || sleep 5 
+                res=$(pbmessage)
+        done
+        WriteLog "No peering or blocked transation in status, let's continue"
 }
 
 increase_weight ()
 { 
-	osd=$1	
-	weight=$2
-	WriteLog "Increasing weight of osd $osd to $weight"
- 	[[ "$DRYRUN" == "TRUE" ]]  || ( ceph osd crush reweight osd.$osd $weight; sleep 1) 
+        osd=$1
+        weight=$2
+        WriteLog "Increasing weight of osd $osd to $weight"
+        [[ "$DRYRUN" == "TRUE" ]]  || ( ceph osd crush reweight osd.$osd $weight; sleep 1) 
 }
 
 increase_all ()
 { 
-	workingweight=$1
-	seq $STARTINGOSD $ENDINGOSD | while read i ; do 
-		increase_weight $i $workingweight
-	done
+        workingweight=$1
+        seq $STARTINGOSD $ENDINGOSD | while read i ; do 
+                increase_weight $i $workingweight
+        done
 } 
 
 # Alternative way to increase weight, increasing one osd per 4 servers at each loop.
@@ -93,10 +87,17 @@ increase_all_bis_custom ()
   workingweight=$1
   
   seq 0 19 | while read i; do 
-  	increase_weight $(echo "$STARTINGOSD+$i"| bc ) $workingweight
-  	increase_weight $(echo "$STARTINGOSD+$i+20"| bc ) $workingweight
-  	increase_weight $(echo "$STARTINGOSD+$i+40"| bc ) $workingweight
-  	increase_weight $(echo "$STARTINGOSD+$i+60"| bc ) $workingweight
+        increase_weight $(echo "$STARTINGOSD+$i"| bc ) $workingweight
+        increase_weight $(echo "$STARTINGOSD+$i+20"| bc ) $workingweight
+        increase_weight $(echo "$STARTINGOSD+$i+40"| bc ) $workingweight
+        increase_weight $(echo "$STARTINGOSD+$i+60"| bc ) $workingweight
+        check4message
+        increase_weight $(echo "$STARTINGOSD+$i+80"| bc ) $workingweight
+        increase_weight $(echo "$STARTINGOSD+$i+100"| bc ) $workingweight
+        increase_weight $(echo "$STARTINGOSD+$i+120"| bc ) $workingweight
+        increase_weight $(echo "$STARTINGOSD+$i+140"| bc ) $workingweight
+        check4message
+        sleep 5 
   done 
 }
 
@@ -105,9 +106,9 @@ begin ()
 
 currentweight=$(bc <<< "$STARTINGWEIGHT+$STEP")
 while (( $(echo "${currentweight} <5.41 "|bc) )); do 
-	check4message
-	increase_all $currentweight
-	currentweight=$(bc <<< "${currentweight}+${STEP}")
+        check4message
+        increase_all_bis_custom $currentweight
+        currentweight=$(bc <<< "${currentweight}+${STEP}")
 done
 check4message
 increase_all_bis_custom $FINALWEIGHT
