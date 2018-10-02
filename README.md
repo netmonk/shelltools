@@ -6,3 +6,10 @@ As far as i often trade crypto currencies by hand on Poloniex, im used a lot bc 
 
 ## increase\_weight 
 little script i wrote to slowly increase crush weigh of newly osd 
+
+## generate-ssh-config
+Little Awk script to generate an ssh config file from Ansible inventory
+It create a file in /tmp and you need to copy it into your .ssh folder 
+$ generate-ssh-config ansible-infra/inventories/*/hosts.ini 
+$ mv ~/.ssh/config{,.old}
+$ cp /tmp/generated.ssh.config ~/.ssh/config
