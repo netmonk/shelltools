@@ -22,26 +22,23 @@ $2 ~ /ansible_ssh_host=/ {
 }
 
 END {
-for(s=0; s<n; s++){
-       printf "Host %s\n      HostName %s\n      User root\n\n", hostname[s], ip[s] > file;      
-}
+        for(s=0; s<n; s++){
+               printf "Host %s\n      HostName %s\n      User root\n\n", hostname[s], ip[s] > file;      
+        }
+        printf "Host * \n" > file;
+        printf "    User root \n" > file;
+        printf "    GSSAPIAuthentication yes \n" > file;
+        printf "    ForwardAgent yes \n" > file;
+        printf "    AddressFamily inet \n" > file;
+        printf "        SendEnv LANG LC_CTYPE LC_NUMERIC LC_TIME LC_COLLATE LC_MONETARY LC_MESSAGES \n" > file;
+        printf "        SendEnv LC_PAPER LC_NAME LC_ADDRESS LC_TELEPHONE LC_MEASUREMENT \n" > file;
+        printf "        SendEnv LC_IDENTIFICATION LC_ALL LANGUAGE \n" > file;
+        printf "        SendEnv XMODIFIERS \n" > file;
+        printf "        # Avoid error with known hosts \n" > file;
+        printf "        UserKnownHostsFile=/dev/null \n" > file;
+        printf "        StrictHostKeyChecking no \n" > file;
 
-
-printf "Host * \n" > file;
-printf "    User root \n" > file;
-printf "    GSSAPIAuthentication yes \n" > file;
-printf "    ForwardAgent yes \n" > file;
-printf "    AddressFamily inet \n" > file;
-printf "        SendEnv LANG LC_CTYPE LC_NUMERIC LC_TIME LC_COLLATE LC_MONETARY LC_MESSAGES \n" > file;
-printf "        SendEnv LC_PAPER LC_NAME LC_ADDRESS LC_TELEPHONE LC_MEASUREMENT \n" > file;
-printf "        SendEnv LC_IDENTIFICATION LC_ALL LANGUAGE \n" > file;
-printf "        SendEnv XMODIFIERS \n" > file;
-printf "        # Avoid error with known hosts \n" > file;
-printf "        UserKnownHostsFile=/dev/null \n" > file;
-printf "        StrictHostKeyChecking no \n" > file;
-
-printf " Save your old config file : mv ~/.ssh/config{,.old} \n"
-printf " Install the new generated file : cp /tmp/generated.ssh.config ~/.ssh/config \n"
-printf " Enjoy !!!!! :)\n"
-
+        printf " Save your old config file : mv ~/.ssh/config{,.old} \n"
+        printf " Install the new generated file : cp /tmp/generated.ssh.config ~/.ssh/config \n"
+        printf " Enjoy !!!!! :)\n"
 }
